@@ -12,16 +12,16 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth/client/utils"
 )
 
-type buyNameReq struct {
+type initPrizeReq struct {
 	BaseReq rest.BaseReq `json:"base_req"`
 	Name    string       `json:"name"`
 	Amount  string       `json:"amount"`
 	Buyer   string       `json:"buyer"`
 }
 
-func buyNameHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func initPrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req buyNameReq
+		var req initPrizeReq
 
 		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "failed to parse request")
@@ -57,16 +57,18 @@ func buyNameHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	}
 }
 
-type setNameReq struct {
-	BaseReq rest.BaseReq `json:"base_req"`
-	Name    string       `json:"name"`
-	Value   string       `json:"value"`
-	Owner   string       `json:"owner"`
+type setPrizeReq struct {
+	BaseReq    rest.BaseReq `json:"base_req"`
+	Name       string       `json:"name"`
+	Value      string       `json:"value"`
+	Owner      string       `json:"owner"`
+	Account    string       `json:"account"`
+	Passphrase string       `json:"passphrase"`
 }
 
-func setNameHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func setPrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req setNameReq
+		var req setPrizeReq
 		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "failed to parse request")
 			return
@@ -91,19 +93,19 @@ func setNameHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		utils.WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg})
+		WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg}, req.Account, req.Passphrase)
 	}
 }
 
-type deleteNameReq struct {
+type deletePrizeReq struct {
 	BaseReq rest.BaseReq `json:"base_req"`
 	Name    string       `json:"name"`
 	Owner   string       `json:"owner"`
 }
 
-func deleteNameHandler(cliCtx context.CLIContext) http.HandlerFunc {
+func deletePrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req deleteNameReq
+		var req deletePrizeReq
 		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "failed to parse request")
 			return
