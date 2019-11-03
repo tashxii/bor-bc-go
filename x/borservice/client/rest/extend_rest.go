@@ -17,7 +17,7 @@ import (
 
 // WriteGenerateStdTxResponse writes response for the generate only mode.
 func WriteGenerateStdTxResponse(w http.ResponseWriter, cliCtx context.CLIContext,
-	br rest.BaseReq, msgs []sdk.Msg, account, passphrase string) {
+	br rest.BaseReq, msgs []sdk.Msg, req setPrizeReq) {
 	gasAdj, ok := rest.ParseFloat64OrReturnBadRequest(w, br.GasAdjustment, flags.DefaultGasAdjustment)
 	if !ok {
 		return
@@ -64,7 +64,7 @@ func WriteGenerateStdTxResponse(w http.ResponseWriter, cliCtx context.CLIContext
 	cdc := cliCtx.Codec
 
 	// Sign Tx
-	signedStdTx, err := signTx(cdc, transactionStdTx, account, passphrase)
+	signedStdTx, err := signTx(cdc, transactionStdTx, req.Account, req.Account, req.Passphrase, req.Sequence, req.AccountNumber)
 	if err != nil {
 		rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 		return
@@ -92,18 +92,24 @@ func WriteGenerateStdTxResponse(w http.ResponseWriter, cliCtx context.CLIContext
 
 // unsignedTx.json --from jack(done) --offline(done) --chain-id prizechain
 // --sequence 1 --account-number 0 > signedTx.json
-func signTx(cdc *amino.Codec, transactionStdTx types.StdTx, account, passphrase string) (signedStdTx types.StdTx, err error) {
+func signTx(cdc *amino.Codec, transactionStdTx types.StdTx, key, account, passphrase string, sequence, accountNumber int64) (signedStdTx types.StdTx, err error) {
+	fmt.Println("@@@@@ Start signTx")
 	offline := true
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	viper.Set(flags.FlagSequence, 1)
-	viper.Set(flags.FlagAccountNumber, 0)
+	viper.Set(flags.FlagFrom, account)
+	viper.Set(flags.FlagSequence, sequence)
+	viper.Set(flags.FlagAccountNumber, accountNumber)
+	fmt.Printf("viper.From=%s\n", viper.GetString(flags.FlagFrom))
+	fmt.Printf("viper.Sequence=%s\n", viper.GetInt64(flags.FlagSequence))
+	fmt.Printf("viper.AccountNumber=%s\n", viper.GetInt64(flags.FlagAccountNumber))
 	txBldr := types.NewTxBuilderFromCLI()
 
 	if viper.GetBool(flagValidateSigs) {
 		if !printAndValidateSigs(cliCtx, txBldr.ChainID(), transactionStdTx, offline) {
+			fmt.Println("@@@@@ Return signTx printAndValidateSigs")
 			return signedStdTx, fmt.Errorf("signatures validation failed")
 		}
-
+		fmt.Println("@@@@@ Return signTx flagValidateSigs")
 		return
 	}
 
@@ -116,6 +122,7 @@ func signTx(cdc *amino.Codec, transactionStdTx types.StdTx, account, passphrase 
 
 		multisigAddr, err = sdk.AccAddressFromBech32(multisigAddrStr)
 		if err != nil {
+			fmt.Println("@@@@@ Return signTx AccAddressFromBech32")
 			return
 		}
 
@@ -125,18 +132,25 @@ func signTx(cdc *amino.Codec, transactionStdTx types.StdTx, account, passphrase 
 		generateSignatureOnly = true
 	} else {
 		appendSig := viper.GetBool(flagAppend) && !generateSignatureOnly
-		signedStdTx, err = SignStdTxAndGivingPassphrase(txBldr, cliCtx, cliCtx.GetFromName(), transactionStdTx, appendSig, offline, passphrase)
+		signedStdTx, err = SignStdTxAndGivingPassphrase(
+			txBldr, cliCtx, key,
+			transactionStdTx, appendSig, offline,
+			passphrase)
 	}
+	fmt.Printf("@@@@@ End signTx %v\n", err)
 	return
 }
 
 func broadcastTx(cdc *amino.Codec, signedStdTx types.StdTx) (err error) {
 	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	cliCtx.BroadcastMode = flags.BroadcastAsync
 	txBytes, err := cliCtx.Codec.MarshalBinaryLengthPrefixed(signedStdTx)
 	if err != nil {
+		fmt.Printf("@@@@@ Return broadcastTx %v\n", err)
 		return
 	}
 
 	_, err = cliCtx.BroadcastTx(txBytes)
+	fmt.Printf("@@@@@ End broadcastTx %v\n", err)
 	return
 }

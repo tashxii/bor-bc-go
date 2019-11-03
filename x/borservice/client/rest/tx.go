@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"bor-bc-go/x/borservice/internal/types"
@@ -58,12 +59,14 @@ func initPrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 }
 
 type setPrizeReq struct {
-	BaseReq    rest.BaseReq `json:"base_req"`
-	Name       string       `json:"name"`
-	Value      string       `json:"value"`
-	Owner      string       `json:"owner"`
-	Account    string       `json:"account"`
-	Passphrase string       `json:"passphrase"`
+	BaseReq       rest.BaseReq `json:"base_req"`
+	Name          string       `json:"name"`
+	Value         string       `json:"value"`
+	Owner         string       `json:"owner"`
+	Account       string       `json:"account"`
+	Passphrase    string       `json:"passphrase"`
+	Sequence      int64        `json:"sequence"`
+	AccountNumber int64        `json:"accoutNumber"`
 }
 
 func setPrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
@@ -92,8 +95,11 @@ func setPrizeHandler(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return
 		}
-
-		WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg}, req.Account, req.Passphrase)
+		fmt.Printf("***** req.Account=%s\n", req.Account)
+		fmt.Printf("***** req.Passphrase=%s\n", req.Passphrase)
+		fmt.Printf("***** req.Sequence=%d\n", req.Sequence)
+		fmt.Printf("***** req.AccountNumber=%d\n", req.AccountNumber)
+		WriteGenerateStdTxResponse(w, cliCtx, baseReq, []sdk.Msg{msg}, req)
 	}
 }
 
